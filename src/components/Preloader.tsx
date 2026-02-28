@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './Preloader.css';
-import preloaderVidDesktop from '../assets/onoPre.webm';
+import preloaderVidDesktop from '../assets/onoPrePC.mp4';
 import preloaderVidMobile from '../assets/onoPreMob.webm';
 
 interface PreloaderProps {
@@ -74,7 +74,10 @@ const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
                 onEnded={handleComplete}
                 className="preloader-video"
             >
-                <source src={isMobile ? preloaderVidMobile : preloaderVidDesktop} type="video/webm" />
+                <source
+                    src={isMobile ? preloaderVidMobile : preloaderVidDesktop}
+                    type={isMobile ? "video/webm" : "video/mp4"}
+                />
                 {/* Fallback for browsers that don't support video */}
             </video>
         </div>
