@@ -28,7 +28,7 @@ const Navbar: React.FC = () => {
                 <ul className="cosmos-nav-links left-links">
                     <li><a href="#about">ABOUT</a></li>
                     <li><a href="#events">EVENTS</a></li>
-                    <li><a href="#merch">MERCH</a></li>
+                    <li><a href="#gallery">GALLERY</a></li>
                 </ul>
                 <div className="cosmos-nav-logo desktop-logo">
                     <span className="neon-text">ONEIROS</span>
