@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import './Preloader.css';
-import preloaderVidDesktop from '../assets/onoPrePC.mp4';
-import preloaderVidMobile from '../assets/onoMobo.webm';
+import preloaderVidDesktop from '../assets/intro_enhanced.webm';
 
 interface PreloaderProps {
     onComplete: () => void;
@@ -9,33 +8,28 @@ interface PreloaderProps {
 
 const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
     const [fadeOut, setFadeOut] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
+    const [progress, setProgress] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
 
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            const current = videoRef.current.currentTime;
+            const duration = videoRef.current.duration;
+            if (duration) {
+                const rawPercent = current / duration;
+                // Ease-out curve, power of 5: rapidly jumps to ~90% earlier, then crawls
+                const easedPercent = 1 - Math.pow(1 - rawPercent, 5);
+                const percent = Math.min(Math.round(easedPercent * 100), 100);
+                setProgress(percent);
+            }
+        }
+    };
+
     useEffect(() => {
-        // Determine if mobile on mount
-        const handleResize = () => {
-            setIsMobile(window.innerWidth <= 768);
-        };
-
-        // Initial check
-        handleResize();
-
-        window.addEventListener('resize', handleResize);
 
         // If autoPlay is blocked by the browser, try to force play it
         if (videoRef.current) {
-            // Fast forward mobile video slightly so it matches desktop timing
-            if (isMobile) {
-                // Adjust this ratio based on exactly how much faster you want it 
-                // e.g., 2.0 = 2x speed. 
-                // Desktop is ~5s, mobile is ~4s. If you want mobile (4s) to stretch to 7s, playbackRate = 4/7 = 0.57 (slower)
-                // Wait, user says "fast forward mobile preloader so both are at same time" which means mobile is running too SLOW?
-                // Let's set it to 1.5x speed to make mobile run faster to keep up with desktop's animation speed
-                videoRef.current.playbackRate = 1.35;
-            } else {
-                videoRef.current.playbackRate = 1.0;
-            }
+            videoRef.current.playbackRate = 1.2;
 
             videoRef.current.play().catch(error => {
                 console.warn("Autoplay was prevented by browser:", error);
@@ -49,9 +43,8 @@ const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
 
         return () => {
             clearTimeout(fallbackTimer);
-            window.removeEventListener('resize', handleResize);
         };
-    }, [isMobile]);
+    }, []);
 
     const handleComplete = () => {
         setFadeOut(true);
@@ -66,20 +59,32 @@ const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
                 ref={videoRef}
                 // We need a key to force React to remount the video element if the source changes,
                 // otherwise some browsers don't update the video src properly
-                key={isMobile ? 'mobile' : 'desktop'}
+                key="preloader"
                 autoPlay
                 muted
                 playsInline
                 preload="auto"
                 onEnded={handleComplete}
+                onTimeUpdate={handleTimeUpdate}
                 className="preloader-video"
             >
                 <source
-                    src={isMobile ? preloaderVidMobile : preloaderVidDesktop}
-                    type={isMobile ? "video/webm" : "video/mp4"}
+                    src={preloaderVidDesktop}
+                    type="video/webm"
                 />
                 {/* Fallback for browsers that don't support video */}
             </video>
+
+            <div className="loading-wrapper">
+                <div className="loading-percentage">{progress}%</div>
+                <div className="loading-text">Loading 3D Experience...</div>
+                <div className="loading-bar-bg">
+                    <div
+                        className="loading-bar-fill"
+                        style={{ width: `${progress}%` }}
+                    ></div>
+                </div>
+            </div>
         </div>
     );
 };

@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import Preloader from './components/Preloader';
+import Navbar from './components/Navbar';
 
 export default function App() {
     const [loading, setLoading] = useState(true);
 
     return (
         <>
+            <Navbar />
             {loading && <Preloader onComplete={() => setLoading(false)} />}
             {!loading && (
-                <h1>Oneiros-26 Application Loading Complete</h1>
+                <div className="main-content">
+                    {/* Add your main application components here */}
+                </div>
             )}
         </>
     )
