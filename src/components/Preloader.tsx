@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import './Preloader.css';
 import preloaderVidDesktop from '../assets/intro_enhanced.webm';
 
@@ -11,55 +11,45 @@ const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
     const [progress, setProgress] = useState(0);
     const videoRef = useRef<HTMLVideoElement>(null);
 
-    const handleTimeUpdate = () => {
+    const handleComplete = useCallback(() => {
+        setFadeOut(true);
+        setTimeout(() => {
+            onComplete();
+        }, 500); // matches CSS transition duration
+    }, [onComplete]);
+
+    const handleTimeUpdate = useCallback(() => {
         if (videoRef.current) {
-            const current = videoRef.current.currentTime;
-            const duration = videoRef.current.duration;
+            const { currentTime, duration } = videoRef.current;
             if (duration) {
-                const rawPercent = current / duration;
+                const rawPercent = currentTime / duration;
                 // Ease-out curve, power of 5: rapidly jumps to ~90% earlier, then crawls
                 const easedPercent = 1 - Math.pow(1 - rawPercent, 5);
-                const percent = Math.min(Math.round(easedPercent * 100), 100);
-                setProgress(percent);
+                setProgress(Math.min(Math.round(easedPercent * 100), 100));
             }
         }
-    };
+    }, []);
 
     useEffect(() => {
-
-        // If autoPlay is blocked by the browser, try to force play it
         if (videoRef.current) {
             videoRef.current.playbackRate = 1.2;
-
             videoRef.current.play().catch(error => {
                 console.warn("Autoplay was prevented by browser:", error);
             });
         }
 
-        // Safety fallback timer in case 'onEnded' doesn't fire for some reason
-        const fallbackTimer = setTimeout(() => {
-            handleComplete();
-        }, 15000);
+        // Safety fallback timer in case 'onEnded' doesn't fire
+        const fallbackTimer = setTimeout(handleComplete, 15000);
 
         return () => {
             clearTimeout(fallbackTimer);
         };
-    }, []);
-
-    const handleComplete = () => {
-        setFadeOut(true);
-        setTimeout(() => {
-            onComplete();
-        }, /* matches CSS transition duration */ 500);
-    };
+    }, [handleComplete]);
 
     return (
         <div className={`preloader-container ${fadeOut ? 'fade-out' : ''}`}>
             <video
                 ref={videoRef}
-                // We need a key to force React to remount the video element if the source changes,
-                // otherwise some browsers don't update the video src properly
-                key="preloader"
                 autoPlay
                 muted
                 playsInline
@@ -72,7 +62,6 @@ const Preloader: React.FC<PreloaderProps> = ({ onComplete }) => {
                     src={preloaderVidDesktop}
                     type="video/webm"
                 />
-                {/* Fallback for browsers that don't support video */}
             </video>
 
             <div className="loading-wrapper">

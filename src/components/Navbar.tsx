@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-    const toggleMobileMenu = () => {
-        setIsMobileMenuOpen(!isMobileMenuOpen);
-    };
+    const toggleMobileMenu = useCallback(() => {
+        setIsMobileMenuOpen(prev => !prev);
+    }, []);
 
     return (
         <nav className="cosmos-navbar">

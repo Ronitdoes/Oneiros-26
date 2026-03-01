@@ -35,8 +35,12 @@
     box-sizing: border-box;
     font-family: 'Orbitron', sans-serif;
     pointer-events: auto;
-    transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        background-color 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        border-color 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     animation: drift 60s linear infinite;
+    will-change: background-position;
 }
 
 @keyframes drift {
@@ -117,8 +121,6 @@
 .cosmos-nav-links a:hover::after {
     width: 100%;
 }
-
-
 
 .cosmos-nav-logo {
     display: flex;
