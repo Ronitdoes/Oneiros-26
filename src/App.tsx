@@ -11,7 +11,6 @@ export default function App() {
             {loading && <Preloader onComplete={() => setLoading(false)} />}
             {!loading && (
                 <div className="main-content">
-                    {/* Add your main application components here */}
                 </div>
             )}
         </>

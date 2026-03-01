@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&display=swap');
 
 /* Liquid Ether Navbar Styles */
@@ -30,17 +29,14 @@
         0 8px 32px 0 rgba(0, 195, 255, 0.15),
         inset 0 2px 5px rgba(255, 255, 255, 0.1),
         inset 0 -2px 10px rgba(0, 255, 235, 0.05);
-    z-index: 100000;
-    /* Higher than the Preloader z-index (99999) */
+    z-index: 1000;
     box-sizing: border-box;
     font-family: 'Exo 2', sans-serif;
-    pointer-events: auto;
     transition: box-shadow 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         background-color 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         border-color 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     animation: drift 60s linear infinite;
-    will-change: background-position;
 }
 
 @keyframes drift {
@@ -76,14 +72,6 @@
     gap: 2.5rem;
     margin: 0;
     padding: 0;
-}
-
-.cosmos-nav-links.left-links {
-    justify-content: center;
-}
-
-.cosmos-nav-links.right-links {
-    justify-content: center;
 }
 
 .cosmos-nav-links a {

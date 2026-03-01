@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
