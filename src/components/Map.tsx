@@ -17,14 +17,30 @@ const CAM_SMOOTH = 0.14;
 const CAM_MAX_RADIUS = 57;
 const SPRINT_THRESHOLD = 0.72;
 
+// ─── INTERACTIVE MARKERS ──────────────────────────────────────────────────────
+const MARKER_INTERACT_RADIUS = 6;   // distance to show prompt
+const MARKER_ACTIVATE_RADIUS = 4;   // distance where E / tap activates
+const MARKER_DEFS: { page: string; label: string; pos: [number, number, number]; color: number }[] = [
+  { page: 'about',   label: 'About',        pos: [  3,   0, -44  ], color: 0x00ffee },
+  { page: 'events',  label: 'Major Events',  pos: [ 46.3, 0,  -7.4], color: 0xff6ef9 },
+  { page: 'events',  label: 'Minor Events',  pos: [-49.2, 0, -18.2], color: 0xcc44ff },
+  { page: 'gallery', label: 'Artist',        pos: [-48.3, 0,  22.0], color: 0xffcc00 },
+];
+
 const STATE_IDLE = 0;
 const STATE_RUN = 1;
 const STATE_WALK = 2;
 const STATE_NAMES = ['Idle', 'Run', 'Walk'];
 const STATE_COLORS = ['#4fffaa', '#ff7c4f', '#ffe566'];
 
-export default function Map() {
+interface MapProps {
+  onNavigate?: (page: string) => void;
+}
+
+export default function Map({ onNavigate }: MapProps) {
   const mountRef = useRef<HTMLDivElement>(null);
+  const onNavigateRef = useRef(onNavigate);
+  onNavigateRef.current = onNavigate;
 
   useEffect(() => {
     const container = mountRef.current;
@@ -199,6 +215,114 @@ export default function Map() {
     const emberPoints = new THREE.Points(emberGeo, emberMat);
     emberPoints.renderOrder = 1; // draw after opaque geometry
     scene.add(emberPoints);
+
+    // ── INTERACTIVE 3D MARKERS ─────────────────────────────────────────────────
+    // Build a prompt overlay element
+    const markerPrompt = document.createElement('div');
+    markerPrompt.id = 'marker-prompt';
+    markerPrompt.style.cssText = `
+      position: fixed;
+      bottom: 120px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 45;
+      padding: 12px 28px;
+      border-radius: 14px;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: #fff;
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 15px;
+      letter-spacing: 0.4px;
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      white-space: nowrap;
+    `;
+    document.body.appendChild(markerPrompt);
+
+    // Create 3D marker objects
+    type MarkerRuntime = {
+      page: string;
+      label: string;
+      pos: THREE.Vector3;
+      color: number;
+      group: THREE.Group;
+      ring: THREE.Mesh;
+      pillar: THREE.Mesh;
+      glow: THREE.PointLight;
+      baseY: number;
+    };
+
+    const markers: MarkerRuntime[] = [];
+    let activeMarkerIdx = -1; // index of the marker the player is close to
+
+    const ringGeo = new THREE.TorusGeometry(1.2, 0.08, 16, 48);
+    const pillarGeo = new THREE.CylinderGeometry(0.06, 0.06, 4, 8);
+
+    for (const def of MARKER_DEFS) {
+      const col = new THREE.Color(def.color);
+
+      const group = new THREE.Group();
+      group.position.set(def.pos[0], def.pos[1], def.pos[2]);
+
+      // Glowing vertical pillar
+      const pillarMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.45 });
+      const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+      pillar.position.y = 2;
+      group.add(pillar);
+
+      // Horizontal spinning ring
+      const ringMat = new THREE.MeshBasicMaterial({ color: col, transparent: true, opacity: 0.8 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = 3.5;
+      group.add(ring);
+
+      // Point light for local glow on surrounding geometry
+      const glow = new THREE.PointLight(def.color, 2, 12);
+      glow.position.y = 2.5;
+      group.add(glow);
+
+      scene.add(group);
+
+      markers.push({
+        page: def.page,
+        label: def.label,
+        pos: new THREE.Vector3(def.pos[0], def.pos[1], def.pos[2]),
+        color: def.color,
+        group,
+        ring,
+        pillar,
+        glow,
+        baseY: def.pos[1],
+      });
+    }
+
+    // E-key handler for marker activation
+    const onMarkerActivate = () => {
+      if (activeMarkerIdx < 0) return;
+      const m = markers[activeMarkerIdx];
+      const dx = charPos.x - m.pos.x;
+      const dz = charPos.z - m.pos.z;
+      if (Math.sqrt(dx * dx + dz * dz) <= MARKER_ACTIVATE_RADIUS) {
+        onNavigateRef.current?.(m.page);
+      }
+    };
+
+    const onMarkerKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'e' || e.key === 'E') onMarkerActivate();
+    };
+    window.addEventListener('keydown', onMarkerKeyDown);
+
+    // Tap-to-activate on mobile (double-tap near marker prompt)
+    const onMarkerTap = () => {
+      if (activeMarkerIdx >= 0) onMarkerActivate();
+    };
+    markerPrompt.style.pointerEvents = 'auto';
+    markerPrompt.addEventListener('click', onMarkerTap);
 
     // ── NEON GRID FLOOR ───────────────────────────────────────────────────────
     const surfaceGeo = new THREE.PlaneGeometry(300, 300, 1, 1);
@@ -801,6 +925,57 @@ export default function Map() {
       emberColAttr.needsUpdate = true;
       emberSzAttr.needsUpdate = true;
 
+      // ── UPDATE MARKERS (proximity + animation) ──────────────────────────────
+      let closestIdx = -1;
+      let closestDist = Infinity;
+      const elapsed = clock.elapsedTime;
+
+      for (let mi = 0; mi < markers.length; mi++) {
+        const m = markers[mi];
+        const dx = charPos.x - m.pos.x;
+        const dz = charPos.z - m.pos.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+
+        // Animate: ring spins, pillar bobs
+        m.ring.rotation.z = elapsed * 1.5 + mi * 1.2;
+        m.ring.position.y = 3.5 + Math.sin(elapsed * 1.8 + mi) * 0.25;
+        m.pillar.position.y = 2 + Math.sin(elapsed * 1.2 + mi * 0.7) * 0.15;
+
+        // Pulse glow intensity
+        m.glow.intensity = 1.5 + Math.sin(elapsed * 2.5 + mi * 0.9) * 0.8;
+
+        if (dist < MARKER_INTERACT_RADIUS && dist < closestDist) {
+          closestDist = dist;
+          closestIdx = mi;
+        }
+      }
+
+      if (closestIdx !== activeMarkerIdx) {
+        activeMarkerIdx = closestIdx;
+        if (closestIdx >= 0) {
+          const m = markers[closestIdx];
+          const hexStr = '#' + new THREE.Color(m.color).getHexString();
+          const canActivate = closestDist <= MARKER_ACTIVATE_RADIUS;
+          markerPrompt.innerHTML = canActivate
+            ? `<span style="color:${hexStr};font-weight:600">${m.label}</span> — Press <kbd style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;margin:0 3px">E</kbd> or tap here`
+            : `<span style="color:${hexStr};font-weight:600">${m.label}</span> — get closer to interact`;
+          markerPrompt.style.opacity = '1';
+          markerPrompt.style.pointerEvents = canActivate ? 'auto' : 'none';
+        } else {
+          markerPrompt.style.opacity = '0';
+          markerPrompt.style.pointerEvents = 'none';
+        }
+      } else if (closestIdx >= 0) {
+        // Update prompt text as distance changes
+        const m = markers[closestIdx];
+        const hexStr = '#' + new THREE.Color(m.color).getHexString();
+        const canActivate = closestDist <= MARKER_ACTIVATE_RADIUS;
+        markerPrompt.innerHTML = canActivate
+          ? `<span style="color:${hexStr};font-weight:600">${m.label}</span> — Press <kbd style="background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;margin:0 3px">E</kbd> or tap here`
+          : `<span style="color:${hexStr};font-weight:600">${m.label}</span> — get closer to interact`;
+        markerPrompt.style.pointerEvents = canActivate ? 'auto' : 'none';
+      }
+
       // Third-person camera
       const eyeY = charPos.y + charH * 0.55;
       const lookAt = new THREE.Vector3(charPos.x, eyeY, charPos.z);
@@ -943,6 +1118,19 @@ export default function Map() {
       window.removeEventListener('touchcancel', onTouchEndCancel);
       window.removeEventListener('resize', onResize);
       joystickZone?.removeEventListener('touchstart', onJoyTouchStart);
+
+      window.removeEventListener('keydown', onMarkerKeyDown);
+      markerPrompt.removeEventListener('click', onMarkerTap);
+      if (document.body.contains(markerPrompt)) document.body.removeChild(markerPrompt);
+
+      // Dispose marker geometries
+      ringGeo.dispose();
+      pillarGeo.dispose();
+      for (const m of markers) {
+        (m.ring.material as THREE.Material).dispose();
+        (m.pillar.material as THREE.Material).dispose();
+        m.glow.dispose();
+      }
 
       renderer.dispose();
       emberGeo.dispose();
