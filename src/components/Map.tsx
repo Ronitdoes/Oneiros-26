@@ -37,11 +37,16 @@ export default function Map() {
     const joystickKnob = document.getElementById('joystick-knob') as HTMLElement | null;
     const hudEl = document.getElementById('hud') as HTMLElement | null;
 
-    // Show HUD / joystick now that the 3D scene is mounting
+    // Show HUD / joystick only AFTER the preloader finishes (now that we mount concurrently)
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (stateEl) stateEl.style.display = 'block';
-    if (hudEl) hudEl.style.display = 'flex';
-    if (isTouch && joystickZone) joystickZone.style.display = 'flex';
+
+    const showUI = () => {
+      if (stateEl) stateEl.style.display = 'block';
+      if (hudEl) hudEl.style.display = 'flex';
+      if (isTouch && joystickZone) joystickZone.style.display = 'flex';
+    };
+
+    window.addEventListener('start-experience', showUI);
 
     // ── RENDERER ──────────────────────────────────────────────────────────────
     const renderer = new THREE.WebGLRenderer({
@@ -214,43 +219,39 @@ export default function Map() {
         uniform vec3 color1;
         uniform vec3 color2;
         varying vec3 vWorldPos;
+
         void main() {
           vec2 coord = vWorldPos.xz * 0.5; // Grid scale
           
+          // Distance squared for fog (avoiding costly length sqrt)
+          vec2 camOffset = vWorldPos.xz - cameraPosition.xz;
+          float distSq = dot(camOffset, camOffset);
+          
+          // Fast exponential squared fog (0.035^2 = 0.001225)
+          float fogFactor = clamp(exp(-distSq * 0.001225), 0.0, 1.0);
+          
           // Using fwidth for anti-aliased lines
           vec2 grid = abs(fract(coord - 0.5) - 0.5) / fwidth(coord);
-          // Increase line thickness slightly and add a soft bloom/falloff
           float line = min(grid.x, grid.y);
           
-          // Core sharp line
-          float core = 1.0 - smoothstep(0.0, 1.2, line);
-          // Outer soft emissive glow (bloom)
-          float glow = 1.0 - smoothstep(0.0, 6.0, line);
+          // Optimized linear clamps instead of expensive smoothsteps
+          float core = clamp(1.2 - line, 0.0, 1.0);
+          float glow = clamp(1.0 - line * 0.1666, 0.0, 1.0);
           float gridAlpha = core + (glow * 0.4);
           
           // Glowing gradient
           float mixVal = sin(vWorldPos.x * 0.1) * cos(vWorldPos.z * 0.1) * 0.5 + 0.5;
-          vec3 gridCol = mix(color1, color2, mixVal) * 3.0; // intense emissive
+          vec3 gridCol = mix(color1, color2, mixVal) * 3.0;
           
-          // Very dark, slightly reflective base surface color (simulated base)
+          // Base color and fog mix
           vec3 baseCol = vec3(0.02, 0.02, 0.03); 
-          vec3 finalCol = mix(baseCol, gridCol, gridAlpha);
-          
-          // Exponential fog fade to black
-          float dist = length(vWorldPos.xz - cameraPosition.xz);
-          float fogDensity = 0.035;
-          float fogFactor = exp(-pow(dist * fogDensity, 2.0));
-          fogFactor = clamp(fogFactor, 0.0, 1.0);
-          
-          // Mix with black for the fog effect instead of just alpha fading, 
-          // to keep the base dark surface solid until it reaches horizon.
-          finalCol = mix(vec3(0.0, 0.0, 0.0), finalCol, fogFactor);
+          vec3 finalCol = mix(vec3(0.0), mix(baseCol, gridCol, gridAlpha), fogFactor);
           
           gl_FragColor = vec4(finalCol, 1.0);
         }
       `,
-      transparent: true,
-      depthWrite: false,
+      transparent: false, // Opaque avoids heavy screen overdraw
+      depthWrite: true,   // Let it occlude things underneath
     });
 
     const neonSurface = new THREE.Mesh(surfaceGeo, surfaceMat);
@@ -926,9 +927,11 @@ export default function Map() {
 
       // Hide HUD/joystick when unmounting
       if (stateEl) stateEl.style.display = 'none';
+      if (stateEl) stateEl.style.display = 'none';
       if (hudEl) hudEl.style.display = 'none';
       if (joystickZone) joystickZone.style.display = 'none';
 
+      window.removeEventListener('start-experience', showUI);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('keyup', onKeyUp);
       window.removeEventListener('mousedown', onMouseDown);
