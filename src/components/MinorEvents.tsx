@@ -1,10 +1,17 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import CosmicBackground from './CosmicBackground';
 import DomeGallery from './DomeGallery';
 import './MinorEvents.css';
 
 export default function MinorEvents() {
     const sectionRef = useRef<HTMLDivElement>(null);
+    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth <= 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const elements = sectionRef.current?.querySelectorAll('.minor-events-animate');
@@ -123,13 +130,13 @@ export default function MinorEvents() {
                 {/* ── SHOWCASE GALLERY SECTION ──────────────────────────── */}
                 <section className="minor-events-dome-section minor-events-animate">
                     <DomeGallery
-                        fit={0.6}
-                        minRadius={100}
+                        fit={isMobile ? 0.7 : 0.9}
+                        minRadius={isMobile ? 60 : 60}
                         maxVerticalRotationDeg={0}
-                        segments={28}
+                        segments={isMobile ? 18 : 28}
                         dragDampening={5}
                         grayscale={true}
-                        imageBorderRadius="50px"
+                        imageBorderRadius={isMobile ? "25px" : "50px"}
                     />
                     <div className="minor-events-dome-overlay-text">
                         <p className="minor-events-dome-label minor-events-animate minor-events-animate-delay-1">THE ARCHIVE</p>
