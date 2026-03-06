@@ -2,15 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import './Preloader.css';
 import preloaderVidDesktop from '../assets/intro_enhanced.webm';
 import CosmicBackground from './CosmicBackground';
+import DecryptedText from './DecryptedText';
 
 interface PreloaderProps {
     onComplete: () => void;
 }
 
 export default function Preloader({ onComplete }: PreloaderProps) {
-    const [fadeOut, setFadeOut]     = useState(false);
-    const [progress, setProgress]   = useState(0);
-    const videoRef                  = useRef<HTMLVideoElement>(null);
+    const [fadeOut, setFadeOut] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const videoRef = useRef<HTMLVideoElement>(null);
     const lastProgressUpdate = useRef(0);
 
     const handleComplete = useCallback(() => {
@@ -27,7 +28,7 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         if (now - lastProgressUpdate.current < 125) return;
         lastProgressUpdate.current = now;
 
-        const rawPercent  = video.currentTime / video.duration;
+        const rawPercent = video.currentTime / video.duration;
         const easedPercent = 1 - Math.pow(1 - rawPercent, 5);
         setProgress(prev => {
             const next = Math.min(Math.round(easedPercent * 100), 100);
@@ -43,8 +44,8 @@ export default function Preloader({ onComplete }: PreloaderProps) {
         video.play().catch(err => console.warn('Autoplay prevented:', err));
 
         // Pre-fetch models into browser cache
-        fetch('/map.glb',       { priority: 'low' }).catch(() => {});
-        fetch('/character.glb', { priority: 'low' }).catch(() => {});
+        fetch('/map.glb', { priority: 'low' }).catch(() => { });
+        fetch('/character.glb', { priority: 'low' }).catch(() => { });
 
         const fallbackTimer = setTimeout(handleComplete, 15000);
         return () => clearTimeout(fallbackTimer);
@@ -69,7 +70,17 @@ export default function Preloader({ onComplete }: PreloaderProps) {
 
             <div className="loading-wrapper">
                 <div className="loading-percentage">{progress}%</div>
-                <div className="loading-text">Loading 3D Experience...</div>
+                <div className="loading-text">
+                    <DecryptedText
+                        text="Loading 3D Experience..."
+                        speed={60}
+                        maxIterations={15}
+                        characters="ABCD1234!?>_/"
+                        className="revealed"
+                        animateOn="view"
+                        revealDirection="start"
+                    />
+                </div>
                 <div className="loading-bar-bg">
                     <div
                         className="loading-bar-fill"
