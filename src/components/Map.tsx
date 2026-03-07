@@ -105,17 +105,11 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
       powerPreference: 'high-performance',
     });
 
-<<<<<<< HEAD
-=======
     // Use MEDIUM on mobile, HIGH on desktop, then tune mobile sharpness separately.
->>>>>>> refs/remotes/origin/main
     let qualityProfile = qualityProfileFor(isMobile ? 'MEDIUM' : 'HIGH');
     const mobileResolutionProfile = isMobile ? getMobileResolutionProfile(renderer) : null;
 
-<<<<<<< HEAD
-=======
     // Hard-cap DPR to avoid runaway fill-rate on ultra-dense mobile screens.
->>>>>>> refs/remotes/origin/main
     const PR_CAP = isMobile ? 1.5 : 2.0;
 
     const getTargetPixelRatio = (profile: QualityProfile) => {
@@ -187,14 +181,9 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
     const enhancementState = createEnhancementState();
 
     // ── MINIMAL CHARACTER AURA ────────────────────────────────────────────────
-<<<<<<< HEAD
-    const _auraGeo  = new THREE.CircleGeometry(0.55, 24);
-    const _auraMat  = new THREE.MeshBasicMaterial({
-=======
     // Bare minimum: single faint white ground disc — no blue, no particles
     const _auraGeo = new THREE.CircleGeometry(0.55, 24);
     const _auraMat = new THREE.MeshBasicMaterial({
->>>>>>> refs/remotes/origin/main
       color: new THREE.Color(0xffffff),
       transparent: true,
       opacity: 0.04,
@@ -340,15 +329,10 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
     // ── NEON GRID FLOOR ───────────────────────────────────────────────────────
     const surfaceGeo = new THREE.PlaneGeometry(300, 300, 1, 1);
     const shaderGridMat = createNeonGridMaterial();
-<<<<<<< HEAD
-    const basicGridMat  = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x37215f) });
-    let gridUsesShader  = isMobile ? false : qualityProfile.enableShaderGrid;
-=======
     const basicGridMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0x37215f) });
 
     // Always use the quality profile setting, even on mobile
     let gridUsesShader = qualityProfile.enableShaderGrid;
->>>>>>> refs/remotes/origin/main
     let surfaceMat: THREE.Material = gridUsesShader ? shaderGridMat : basicGridMat;
 
     const neonSurface = new THREE.Mesh(surfaceGeo, surfaceMat);
@@ -698,12 +682,8 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
     const camRight = new THREE.Vector3();
     const UP = new THREE.Vector3(0, 1, 0);
 
-<<<<<<< HEAD
-    const _lookAt     = new THREE.Vector3();
-=======
     // Pre-allocated scratch vectors — never allocate inside tick()
     const _lookAt = new THREE.Vector3();
->>>>>>> refs/remotes/origin/main
     const _camDesired = new THREE.Vector3();
     const _ssTail = new THREE.Vector3();
 
@@ -954,11 +934,6 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
     };
 
     const enablePostProcessing = async () => {
-<<<<<<< HEAD
-      if (isMobile) return;
-      const module  = await import('./map/postprocessing');
-      postFxRuntime = module.createPostProcessing(renderer, scene, camera, qualityProfile);
-=======
       const module = await import('./map/postprocessing');
       postFxRuntime = module.createPostProcessing(renderer, scene, camera, qualityProfile, {
         renderScale: isMobile ? (mobileResolutionProfile?.postProcessScale ?? 0.86) : 1,
@@ -966,7 +941,6 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
         vignetteDarkness: isMobile ? 0.24 : undefined,
       });
       postFxRuntime.setPixelRatio(renderer.getPixelRatio());
->>>>>>> refs/remotes/origin/main
       postFxRuntime.setSize(window.innerWidth, window.innerHeight);
     };
 
