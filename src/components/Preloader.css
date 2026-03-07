@@ -41,7 +41,7 @@
     .preloader-video {
         width: 120%;
         max-width: 550px;
-        top: 35%;
+        top: 50%;
         transform: translate(-50%, -50%) translateZ(0);
     }
 }
@@ -64,7 +64,7 @@
 
 @media (max-width: 768px) {
     .loading-wrapper {
-        bottom: 35%;
+        bottom: 20%;
     }
 }
 
