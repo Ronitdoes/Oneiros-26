@@ -30,6 +30,14 @@ const pageComponents: Record<string, React.ReactNode> = {
   contact: <Contact />,
 };
 
+/**
+ * Rendering order (z-index stack):
+ *
+ *   z-index 999  →  Preloader (video, fullscreen, unmounts after completion)
+ *   z-index  50  →  Navbar (fixed, liquid glass, always above canvas)
+ *   z-index  40  →  HUD / joystick / state badge (in index.html)
+ *   z-index   2  →  Three.js canvas (Map.tsx, fixed, full viewport)
+ */
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,9 +45,6 @@ function AppContent() {
   // Safely extract the page key (e.g. "/about/" -> "about", "/Oneiros-26/about" if basename is somehow missing -> still matches first segment or we can just rely on react-router)
   const pathname = location.pathname.replace(/^\/+/, '').replace(/\/+$/, '');
   const activePage = pathname.split('/')[0] || null;
-
-  // Use a heuristic for preloader (always true after mounting for simplicity if we want, or derive from state if needed)
-  // For now, we assume preloader runs once per session. We can use a simple state here.
 
   const handleNavigate = (page: string | null) => {
     if (page) {
@@ -52,6 +57,8 @@ function AppContent() {
 
   return (
     <>
+      {/* ── MAIN EXPERIENCE ───────────────────────────────────────────────── */}
+      {/* Mounted immediately — WebGL initializes while preloader plays */}
       <Map
         onNavigate={handleNavigate}
         onClose={() => handleNavigate(null)}

@@ -22,6 +22,7 @@ export function createNeonGridMaterial() {
     },
 
     vertexShader: /* glsl */`
+      precision highp float;
       varying vec2 vUv;
       void main() {
         vUv = uv;
@@ -30,6 +31,7 @@ export function createNeonGridMaterial() {
     `,
 
     fragmentShader: /* glsl */`
+      precision highp float;
       uniform float uTime;
       uniform float uGlow;
 
@@ -50,10 +52,10 @@ export function createNeonGridMaterial() {
         return mix(a,b,u.x) + (c-a)*u.y*(1.0-u.x) + (d-b)*u.x*u.y;
       }
 
-      // 3-octave FBM
+      // 2-octave FBM (optimized for performance)
       float fbm(vec2 p) {
         float v = 0.0, amp = 0.5;
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 2; i++) {
           v   += amp * vnoise(p);
           p    = p * 2.1 + vec2(1.7, 9.2);
           amp *= 0.5;
@@ -72,25 +74,25 @@ export function createNeonGridMaterial() {
 
         float s = t * 5.0;
         float fi = fract(s);
-        int   ii = int(floor(s));
+        float ii = floor(s);
         fi = fi * fi * (3.0 - 2.0 * fi);
 
-        if (ii == 0) return mix(c0, c1, fi);
-        if (ii == 1) return mix(c1, c2, fi);
-        if (ii == 2) return mix(c2, c3, fi);
-        if (ii == 3) return mix(c3, c4, fi);
+        if (ii < 0.5) return mix(c0, c1, fi);
+        if (ii < 1.5) return mix(c1, c2, fi);
+        if (ii < 2.5) return mix(c2, c3, fi);
+        if (ii < 3.5) return mix(c3, c4, fi);
         return mix(c4, c0, fi);
       }
 
       // ── Thin, high-freq nebula veins ─────────────────────────────────────────
       vec3 veinMasks(vec2 uv, vec2 flow) {
-        vec2 p = uv * 11.0;
+        vec2 p = uv * 24.0;
         vec2 q = vec2(fbm(p + flow), fbm(p + vec2(3.1, 5.7) + flow * 0.9));
         float f = fbm(p + 2.2 * q + flow * 0.2);
 
-        float soft  = smoothstep(0.53, 0.60, f);
-        float inner = smoothstep(0.565, 0.600, f);
-        float core  = smoothstep(0.585, 0.602, f);
+        float soft  = smoothstep(0.40, 0.60, f);
+        float inner = smoothstep(0.46, 0.60, f);
+        float core  = smoothstep(0.52, 0.62, f);
         return vec3(soft, inner, core);
       }
 
@@ -160,7 +162,7 @@ export function createNeonGridMaterial() {
         vec2 flow = vec2(uTime * 0.018, uTime * 0.011);
 
         // ── Background ───────────────────────────────────────────────────────
-        float bgN = vnoise(vUv * 2.5 + flow * 0.2);
+        float bgN = vnoise(vUv * 6.5 + flow * 0.2);
         vec3  bg  = mix(
           vec3(0.010, 0.008, 0.035),
           vec3(0.008, 0.025, 0.045),
@@ -175,7 +177,7 @@ export function createNeonGridMaterial() {
         float veinInner = vm.y;
         float veinCore  = vm.z;
 
-        float veinT   = fract(vnoise(vUv * 5.0 + flow * 0.3) * 1.8 + uTime * 0.04);
+        float veinT   = fract(vnoise(vUv * 12.0 + flow * 0.3) * 1.8 + uTime * 0.04);
         vec3  veinCol = cosmic(veinT);
 
         vec3 color = bg;
