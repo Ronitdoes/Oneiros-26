@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import { BrowserRouter, useLocation, useNavigate } from 'react-router-dom';
 import Preloader from './components/Preloader';
 import Navbar from './components/Navbar';
+import TeleportBar from './components/TeleportBar';
 import './App.css';
 
 // ── Heavy 3D component (lazy-loaded to avoid blocking the initial preloader paint) ──
@@ -165,6 +166,9 @@ function AppContent() {
         </Suspense>
       )}
 
+      {/* Teleport bar — quick navigation to 3D markers (hidden when overlay is open) */}
+      {!activePage && <TeleportBar />}
+
       {/* Navbar — fixed at top, z-index 50 (above canvas and HUD).
           We also load this immediately to fetch its imagery.
       */}
@@ -172,6 +176,7 @@ function AppContent() {
     </>
   );
 }
+
 
 export default function App() {
   const [preloaderDone, setPreloaderDone] = useState(false);

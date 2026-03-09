@@ -696,6 +696,41 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
       charArmature.rotation.y = charRotY;
     };
 
+    // ── TELEPORT-TO-MARKER (from TeleportBar buttons) ─────────────────────────
+    const onTeleportToMarker = (e: Event) => {
+      const page = (e as CustomEvent<{ page: string }>).detail.page;
+      const def = MARKER_DEFS.find(m => m.page === page);
+      if (!def) return;
+
+      // Place character at the marker
+      charPos.set(def.pos[0], GROUND_Y, def.pos[2]);
+
+      // Face the character toward the center of the map
+      charRotY = Math.atan2(-charPos.x, -charPos.z);
+      applyCharTransform();
+
+      // Camera orbit: position the camera TOWARD the center of the map
+      // (not behind the character) to avoid exceeding CAM_MAX_RADIUS at edge markers.
+      // This means the camera is "in front" of the character, looking at its face,
+      // giving a clear view of both the character and the marker.
+      camYaw = charRotY;          // toward center = within bounds
+      camPitch = 0.35;            // slightly elevated for a cinematic angle
+      camDist = CAM_DIST_DEFAULT;
+
+      // SNAP camera immediately (skip lerp) so the transition is instant
+      const eyeY = charPos.y + charH * 0.55;
+      camCurrent.set(
+        charPos.x + Math.sin(camYaw) * camDist * Math.cos(camPitch),
+        charPos.y + camDist * Math.sin(camPitch) + charH * 0.3,
+        charPos.z + Math.cos(camYaw) * camDist * Math.cos(camPitch),
+      );
+      camera.position.copy(camCurrent);
+      camera.lookAt(charPos.x, eyeY, charPos.z);
+    };
+    window.addEventListener('teleport-to-marker', onTeleportToMarker);
+
+
+
     // ── RENDER LOOP ───────────────────────────────────────────────────────────
     const timer = new THREE.Timer();
     const moveDir = new THREE.Vector3();
@@ -1163,6 +1198,7 @@ export default function Map({ onNavigate, onClose, activePage }: MapProps) {
       window.removeEventListener('wheel', onWheel);
       joystickZone?.removeEventListener('touchstart', onJoyTouchStart);
       window.removeEventListener('keydown', onMarkerKeyDown);
+      window.removeEventListener('teleport-to-marker', onTeleportToMarker);
       markerPrompt.removeEventListener('click', onMarkerTap);
       if (document.body.contains(markerPrompt)) document.body.removeChild(markerPrompt);
 
