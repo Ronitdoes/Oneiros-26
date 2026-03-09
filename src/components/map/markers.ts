@@ -141,7 +141,7 @@ export const createSceneMarkers = (
     const groundDiscMat = new THREE.MeshBasicMaterial({
       color: col,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.35,
       side: THREE.DoubleSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
@@ -155,7 +155,7 @@ export const createSceneMarkers = (
     const outerRingMat = new THREE.MeshBasicMaterial({
       color: col,
       transparent: true,
-      opacity: 0.30,
+      opacity: 0.18,
       side: THREE.DoubleSide,
       depthWrite: false,
       blending: THREE.AdditiveBlending,

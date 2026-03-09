@@ -51,13 +51,13 @@ export const createNeonGridMaterial = () => new THREE.ShaderMaterial({
       float pulse  = 0.92 + sin(time * 0.7) * 0.08;
       float mixVal = sin(vWorldPos.x * 0.1 + time * 0.08)
                    * cos(vWorldPos.z * 0.1 - time * 0.06) * 0.5 + 0.5;
-      vec3  gridCol = mix(color1, color2, mixVal) * (2.4 * pulse);
+      vec3  gridCol = mix(color1, color2, mixVal) * (1.2 * pulse);
 
       // Character proximity — grid lights up underfoot
       float d2char    = length(vWorldPos.xz - charPos.xz);
-      float nearBoost = smoothstep(14.0, 0.0, d2char) * 1.8;
+      float nearBoost = smoothstep(12.0, 0.0, d2char) * 1.2;
 
-      vec3 baseCol  = vec3(0.018, 0.018, 0.028);
+      vec3 baseCol  = vec3(0.008, 0.008, 0.015);
       vec3 boosted  = gridCol * (1.0 + nearBoost);
       vec3 finalCol = mix(vec3(0.0), mix(baseCol, boosted, gridAlpha), fogFactor);
 
